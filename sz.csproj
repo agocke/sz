@@ -10,4 +10,9 @@
     <PackageReference Include="System.Reflection.Metadata" Version="5.0.0" />
   </ItemGroup>
 
+  <!-- Resource template -->
+  <ItemGroup>
+    <EmbeddedResource Include="template.html" />
+  </ItemGroup>
+
 </Project>
