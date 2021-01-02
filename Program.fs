@@ -137,7 +137,7 @@ let getAssemblySize (path : string) =
     let mdReader = peReader.GetMetadataReader()
     let asmName = mdReader.GetString(mdReader.GetAssemblyDefinition().Name)
     let asmSizes = { Name = asmName; Members = getNamespaceSizes peReader }
-    use templateStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("sz.template.html")
+    use templateStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("dotnet-sz.template.html")
     use streamReader = new StreamReader(templateStream, Encoding.UTF8)
     let template = streamReader.ReadToEnd()
     // Write to JsonFormat
@@ -155,7 +155,7 @@ let main args =
     try
         let paths = options.Parse(args)
         if showHelp then
-            printfn "Usage: sz [-j|--json] path ..."
+            printfn "Usage: sz path ..."
         else
             getAssemblySize paths.[0]
         0
