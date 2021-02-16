@@ -9,7 +9,7 @@
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <Version>1.0.1</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageRepositoryUrl>https://github.com/agocke/sz.git</PackageRepositoryUrl>
+    <RepositoryUrl>https://github.com/agocke/sz.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
