@@ -15,6 +15,7 @@ open System.Text.Json;
 open System.Text.Json.Serialization;
 open Mono.Options;
 open System.Diagnostics
+open FSharp.Collections.ParallelSeq
 
 [<JsonConverter(typeof<MemberWithSizeConverter>)>]
 type MemberWithSize =
@@ -48,6 +49,13 @@ and AssemblyWithSize =
         [<JsonPropertyName("children")>]
         Members : ImmutableArray<NamespaceWithSize>
     }
+and ProgramWithSize =
+   {
+       [<JsonPropertyName("name")>]
+       ProgramName : string ;
+       [<JsonPropertyName("children")>]
+       Assemblies : ImmutableArray<AssemblyWithSize>
+   }
 and MemberWithSizeConverter() =
     inherit JsonConverter<MemberWithSize>()
 
@@ -102,7 +110,7 @@ let rec getTypeSize (peReader : PEReader) (typeDef : TypeDefinition) =
         for methodDefHandle in typeDef.GetMethods() do
             let methodDef = mdReader.GetMethodDefinition(methodDefHandle)
             NonTypeMemberWithSize <| getMethodDefSize peReader methodDef
-        
+
         // Properties
         for propHandle in typeDef.GetProperties() do
             let prop = mdReader.GetPropertyDefinition(propHandle)
@@ -127,21 +135,36 @@ let getNamespaceSizes (peReader : PEReader) =
     }
     items
     |> Seq.groupBy fst
-    |> Seq.map (fun (k,v) -> { NamespaceWithSize.Name = k 
+    |> Seq.map (fun (k,v) -> { NamespaceWithSize.Name = k
         ; Members = (Seq.map snd v).ToImmutableArray() })
     |> ImmutableArray.CreateRange
 
 let getAssemblySize (path : string) =
     let asmBytes = ImmutableArray.Create<byte>(File.ReadAllBytes(path))
     use peReader = new PEReader(asmBytes)
-    let mdReader = peReader.GetMetadataReader()
-    let asmName = mdReader.GetString(mdReader.GetAssemblyDefinition().Name)
-    let asmSizes = { Name = asmName; Members = getNamespaceSizes peReader }
+    if not peReader.HasMetadata then
+        None
+    else
+        let mdReader = peReader.GetMetadataReader()
+        let asmName = mdReader.GetString(mdReader.GetAssemblyDefinition().Name)
+        Some { Name = asmName; Members = getNamespaceSizes peReader }
+
+let getAllAssemblySizes (paths : List<string>) =
+    PSeq.map getAssemblySize paths
+    |> Seq.choose id
+    |> ImmutableArray.ToImmutableArray
+
+let writeJson (sizes : ImmutableArray<AssemblyWithSize>) =
     use templateStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("dotnet-sz.template.html")
     use streamReader = new StreamReader(templateStream, Encoding.UTF8)
     let template = streamReader.ReadToEnd()
     // Write to JsonFormat
-    let json = JsonSerializer.Serialize(asmSizes)
+    let json =
+        if sizes.Length = 1 then
+            JsonSerializer.Serialize(sizes.[0])
+        else
+            JsonSerializer.Serialize({ ProgramName = "program" ; Assemblies = sizes})
+
     let html = template.Replace("{{{data}}}", json)
     File.WriteAllText("output.html", html)
 
@@ -157,9 +180,9 @@ let main args =
         if showHelp then
             printfn "Usage: sz path ..."
         else
-            getAssemblySize paths.[0]
+            getAllAssemblySizes paths |> writeJson
         0
-    with 
+    with
         | :? OptionException as e ->
             printfn "sz: "
             printfn "%s" e.Message
