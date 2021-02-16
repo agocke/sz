@@ -7,6 +7,9 @@
     <ToolCommand>sz</ToolCommand>
     <PackageOutputPath>pack</PackageOutputPath>
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <Version>1.0.1</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRepositoryUrl>https://github.com/agocke/sz.git</PackageRepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
